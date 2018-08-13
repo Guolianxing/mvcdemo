@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:websocket="http://www.springframework.org/schema/websocket"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/websocket http://www.springframework.org/schema/websocket/spring-websocket.xsd">
+
+    <!-- 扫描web层的包-->
+    <context:component-scan base-package="com.test.controller"/>
+
+    <!-- 将对静态资源的请求交由默认的Servlet处理-->
+    <mvc:default-servlet-handler/>
+
+    <!-- 启动mvc注解驱动，会自动注册RequestMappingHandlerMapping与RequestMappingHandlerAdapter两个Bean,
+        这是Spring MVC为@Controller分发请求所必需的，并且提供了数据绑定支持，
+        @NumberFormatannotation支持，@DateTimeFormat支持,@Valid支持读写XML的支持（JAXB）和读写JSON的支持（默认Jackson）等功能
+     -->
+    <mvc:annotation-driven/>
+
+    <bean id="webSocketHandler" class="com.test.websocket.WebSocketHandler" />
+
+    <websocket:handlers>
+        <websocket:mapping path="/socket" handler="webSocketHandler"/>
+    </websocket:handlers>
+
+</beans>

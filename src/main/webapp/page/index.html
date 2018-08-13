@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>index</title>
+</head>
+<body>
+welcome
+<input type="text" id="msg">
+<br/>
+<button type="button" onclick="clickbtn()">send msg</button>
+</body>
+<script>
+    let url = 'ws://localhost:8080/socket';
+    let socket = new WebSocket(url);
+
+    socket.onopen = () => {
+        console.log('socket open');
+    };
+
+    socket.onclose = () => {
+        console.log('socket close');
+    };
+
+    socket.onmessage = e => {
+        console.log('接受消息：' + e.data);
+    };
+
+    function sendMsg(msg) {
+        console.log('发送消息：' + msg);
+        socket.send(msg);
+    }
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+    function clickbtn() {
+        let msg = $('msg').value;
+        sendMsg(msg);
+    }
+</script>
+</html>
