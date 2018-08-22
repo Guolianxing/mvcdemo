@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        .box {
+            border: 2px solid black;
+            margin: 20px;
+        }
+    </style>
+    <title>Document</title>
+</head>
+<body>
+<div class="box">
+    <h3>单文件上传</h3>
+    <input type="file" id="fileInput">
+    <button type="button" onclick="uploadFile()">upload</button>
+</div>
+<form enctype="multipart/form-data" id="form" class="box">
+    <h3>和表单一起上传文件</h3>
+    <div>
+        <label>username</label>
+        <input type="text" name="userName">
+    </div>
+    <div>
+        <label>password</label>
+        <input type="password" name="password">
+    </div>
+    <input type="file" name="userImg">
+    <button type="button" onclick="uploadForm()">submit</button>
+</form>
+<div class="box">
+    <h3>多文件上传</h3>
+    <input type="file" multiple id="file2">
+    <button type="button" onclick="uploadMFile()">submit</button>
+</div>
+<div class="box">
+    <h3>多个input</h3>
+    <input type="file" multiple id="files1">
+    <input type="file" multiple id="files2">
+    <button type="button" onclick="uploadInputs()">submit</button>
+</div>
+<form enctype="multipart/form-data" id="form-fetch" class="box">
+    <h3>使用fetch上传文件</h3>
+    <div>
+        <label>username</label>
+        <input type="text" name="userName">
+    </div>
+    <div>
+        <label>password</label>
+        <input type="password" name="password">
+    </div>
+    <input type="file" name="userImg">
+    <button type="button" onclick="uploadFetch()">submit</button>
+</form>
+</body>
+<script src="../plugins/jquery/jquery-3.3.1.min.js"></script>
+<script>
+    // 上传单个文件
+    function uploadFile() {
+        let formData = new FormData();
+        let files = document.getElementById("fileInput").files;
+        let file = files[0];
+        formData.append("file", file);
+        console.log(formData);
+        $.ajax({
+            url: '../file/upload',
+            contentType: false,
+            processData:false,
+            type: 'POST',
+            data: formData,
+            success(data) {
+                alert(data);
+            }
+        })
+    }
+
+    // 和表单一起上传文件
+    function uploadForm() {
+        let form = document.getElementById("form");
+        let formData = new FormData(form);
+        $.ajax({
+            url: '../file/uploadForm',
+            contentType: false,
+            processData: false,
+            type: 'POST',
+            data: formData,
+            success(data) {
+                alert(data);
+            }
+        })
+    }
+
+    // 多文件上传
+    function uploadMFile() {
+        let formData = new FormData();
+        let files = document.getElementById("file2").files;
+        for (let i = 0; i < files.length; i++) {
+            formData.append("files", files[i]);
+        }
+        $.ajax({
+            url: '../file/uploadMFile',
+            contentType: false,
+            processData: false,
+            type: 'post',
+            data: formData,
+            success(data) {
+                alert(data);
+            }
+        })
+    }
+
+    // 多文件上传
+    function uploadInputs() {
+        let files1 = document.getElementById("files1").files;
+        let files2 = document.getElementById("files2").files;
+        let formData = new FormData();
+        for (let i = 0; i < files1.length; i++) {
+            formData.append("files1", files1[i]);
+        }
+        for (let i = 0; i < files2.length; i++) {
+            formData.append("files2", files2[i]);
+        }
+        $.ajax({
+            url: '../file/uploadInputs',
+            contentType: false,
+            processData: false,
+            type: 'post',
+            data: formData,
+            success(data) {
+                alert(data);
+            }
+        })
+    }
+
+    // 使用fetch上传文件
+    function uploadFetch() {
+        let form = document.getElementById("form-fetch");
+        let formData = new FormData(form);
+        let request = new Request('../file/uploadForm', {
+            method: 'POST',
+            body: formData
+        });
+        fetch(request).then(res => console.log(res)).catch(e => console.error(e));
+    }
+</script>
+</html>
