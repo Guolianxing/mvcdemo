@@ -16,6 +16,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * Create by Guolianxing on 2018/8/22.
@@ -111,17 +115,11 @@ public class FileController {
         return "fail";
     }
 
-    @ExceptionHandler
-    @ResponseBody
-    // 捕获文件大小异常
-    public String doException(Exception e) {
-        if (e instanceof MaxUploadSizeExceededException) {
-            System.out.println("文件大小超过限制" + ((MaxUploadSizeExceededException) e).getMaxUploadSize());
-            return "size exceeded";
-        }
-        return "no error";
-    }
-
+    /**
+     * @Description: 下载文件
+     * @Author: Guolianxing
+     * @Date: 2018/9/2 10:49
+     */
     @RequestMapping(value = "download")
     public ResponseEntity<byte[]> download() throws Exception {
         String path = ContextLoader.getCurrentWebApplicationContext().getServletContext().getRealPath("imgs/timg.jpg");
@@ -129,6 +127,86 @@ public class FileController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDispositionFormData("attachment", file.getName());
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        return new ResponseEntity<>(FileUtils.readFileToByteArray(file), headers, HttpStatus.CREATED);
+        return new ResponseEntity<>(FileUtils.readFileToByteArray(file), headers, HttpStatus.OK);
     }
+
+    /**
+     * @Description: 接受单个分片文件，放在以整个文件的md5命名的文件夹内
+     * @Author: Guolianxing
+     * @Date: 2018/9/2 10:01
+     */
+    @RequestMapping(value = "/bigFile")
+    @ResponseBody
+    public String bigFile(MultipartFile file, String md5, Integer index) throws Exception {
+        String path = ContextLoader.getCurrentWebApplicationContext().getServletContext().getRealPath("upload");
+        String tempPath = path + File.separator + "chunks" + File.separator + md5;
+        File tempPathFile = new File(tempPath);
+        if (!tempPathFile.exists()) {
+            tempPathFile.mkdirs();
+        }
+        String fileName = file.getOriginalFilename();
+        String pre = fileName.substring(0, fileName.lastIndexOf("."));
+        String suf = fileName.substring(fileName.lastIndexOf("."));
+        String tempFileName = pre + index + suf;
+        File tempFile = new File(tempPath, tempFileName);
+        file.transferTo(tempFile);
+        return "success";
+    }
+
+    /**
+     * @Description: 合并分片文件成一个文件，并删除分片文件
+     * @Author: Guolianxing
+     * @Date: 2018/9/2 9:59
+     */
+    @RequestMapping(value = "/merge")
+    @ResponseBody
+    public String merge(String md5, String fileName) throws Exception {
+        String path = ContextLoader.getCurrentWebApplicationContext().getServletContext().getRealPath("upload");
+        String tempPath = path + File.separator + "chunks" + File.separator + md5;
+        File tempPathFile = new File(tempPath);
+        File[] sources = tempPathFile.listFiles();
+        String pre = fileName.substring(0, fileName.lastIndexOf("."));
+
+        Arrays.sort(sources, (f1, f2) -> {
+            String f1Name = f1.getName();
+            String f2Name = f2.getName();
+            Integer order1 = Integer.parseInt(f1Name.substring(pre.length(), f1Name.lastIndexOf(".")));
+            Integer order2 = Integer.parseInt(f2Name.substring(pre.length(), f2Name.lastIndexOf(".")));
+            return order1.compareTo(order2);
+        });
+        File target = new File(path, fileName);
+        target.createNewFile();
+        RandomAccessFile out = new RandomAccessFile(target, "rw");
+        out.setLength(0);
+        out.seek(0);
+        byte[] bytes = new byte[1024];
+        for (File source : sources) {
+            try (RandomAccessFile in = new RandomAccessFile(source, "rw")) {
+                int len = -1;
+                while ((len = in.read(bytes)) != -1) {
+                    out.write(bytes, 0, len);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("error", e);
+            }
+            source.delete();
+        }
+        out.close();
+        tempPathFile.delete();
+        return "success";
+    }
+
+    @ExceptionHandler
+    @ResponseBody
+    // 捕获文件大小异常
+    public String doException(Exception e) {
+        e.printStackTrace();
+        if (e instanceof MaxUploadSizeExceededException) {
+            System.out.println("文件大小超过限制" + ((MaxUploadSizeExceededException) e).getMaxUploadSize());
+            return "size exceeded";
+        }
+        return "fail";
+    }
+
+
 }

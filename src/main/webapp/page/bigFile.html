@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<div>
+    <input type="file" id="fileInput">
+    <button type="button" onclick="startUpload()">upload</button>
+</div>
+</body>
+<script src="../plugins/browser-md5-file.min.js"></script>
+<script>
+    // 大文件分片上传，先获取文件md5值，在后端以md5值为文件夹命名，将分片存到该文件夹下，当最后一片
+    // 上传完后就可以发送合并文件请求，获取md5值需要将整个文件全部读进内存，文件较大时性能会很低。
+    function startUpload() {
+        let file = document.getElementById("fileInput").files[0];
+        browserMD5File(file, (err, md5) => {
+            upload(file, md5);
+        });
+    }
+    function upload(file, md5) {
+        let fileSize = file.size;
+        console.log("fileSize: %d", fileSize);
+        let chunkSize = 1 * 1024 * 1024;
+        let chunkCount = Math.ceil(fileSize / chunkSize);
+        let uploadedCount = 0;
+        for (let i = 0; i < chunkCount; i++) {
+            let start = chunkSize * i;
+            let end = Math.min(start + chunkSize, fileSize);
+            console.log("start: %d, end: %d", start, end);
+            let formData = new FormData();
+            formData.append("md5", md5);
+            formData.append("file", file.slice(start, end), file.name);
+            formData.append("index", i.toString());
+            let request = new Request('../file/bigFile', {
+                method: 'POST',
+                body: formData
+            });
+            fetch(request)
+                .then(res => res.text())
+                .then(res => {
+                    console.log(res);
+                    if (res === 'success') {
+                        uploadedCount++;
+                    }
+                    return uploadedCount;
+                })
+                .then(count => {
+                    if (count === chunkCount) {
+                        merge(file, md5);
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+    }
+    function merge(file, md5) {
+        fetch('../file/merge?md5=' + md5 + '&fileName=' + file.name, {
+            method: 'GET'
+        })
+            .then(res => res.text())
+            .then(res => console.log(res))
+            .catch(err => console.error(err));
+    }
+</script>
+</html>
